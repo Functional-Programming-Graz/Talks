@@ -55,7 +55,7 @@
         thunk (get delayed :thunk)]
     (do  
       (if (nil? (deref value))
-        (reset! value (thunk)))
+        (reset! value (thunk)))  ;; not thread-safe, obviously...
       (deref value))))
 
 ;; alternatively, using map destructuring: 
