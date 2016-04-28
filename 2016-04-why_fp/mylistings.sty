@@ -1,0 +1,264 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mylistings.sty}
+
+\RequirePackage{calc}
+\RequirePackage{etoolbox}
+
+% TODO
+% - make wide listing float
+% - customize for more languages (eg. Haskell)
+% - fix color of line break marker
+
+%-------------------------------------------------------------------------------
+% OPTIONS
+%
+
+\providebool{sql}
+\DeclareOption{sql}{\booltrue{sql}}
+
+\DeclareOption*{%
+  \PassOptionsToPackage{\CurrentOption}{listings}
+}
+
+\ProcessOptions\relax
+
+%-------------------------------------------------------------------------------
+% PACKAGES
+%
+\RequirePackage{listings}
+\RequirePackage[normalem]{ulem}
+\RequirePackage{xcolor}
+\RequirePackage[mathb]{mathabx}
+\RequirePackage{microtype}
+
+%-------------------------------------------------------------------------------
+% SETTINGS
+%
+
+% colors
+\providecolor{textgreen}{RGB}{59, 158, 72}
+\providecolor{textblue}{RGB}{15, 100, 255}
+\providecolor{textred}{RGB}{255, 51, 66}
+
+\colorlet{comment}{textgreen}
+\colorlet{keyword}{textblue}
+\colorlet{string}{textred}
+\colorlet{literal}{textred}
+\colorlet{textgray}{darkgray!80}
+
+
+\newlength{\ml@fullbasewidth}
+\newlength{\ml@smallbasewidth}
+\setlength{\ml@fullbasewidth}{1.15ex}
+\setlength{\ml@smallbasewidth}{0.9ex}
+
+\newcommand{\ml@boldunderline}{%
+  \bgroup\markoverwith{\rule[-0.4ex]{2pt}{0.5pt}}\ULon
+}
+
+\newlength{\ml@hookwidth}
+\setlength{\ml@hookwidth}{\widthof{\ensuremath{\drsh}}}
+\newlength{\ml@widthafterhook}
+\setlength{\ml@widthafterhook}{\ml@fullbasewidth - \ml@hookwidth}
+\newcommand{\ml@lefthook}{\textcolor{black}{\ensuremath{\dlsh}}}
+\newcommand{\ml@righthook}{\textcolor{black}{\ensuremath{\drsh}}}
+
+
+%-------------------------------------------------------------------------------
+% EXTRA LANGUAGE STYLES
+%
+
+%\lstloadlanguages{SQL}
+\lstdefinestyle{sql}{%
+  language=SQL,
+  keywordstyle=*\color{keyword},
+  morekeywords={text,references,boolean}
+}
+
+% \lstdefinestyle{haskell}{%
+%   language=Haskell,
+%   alsoletter={'},
+%   %classoffset=0,
+%   keywords=[1]{case,class,data,deriving,do,else,if,import,in,infixl,infixr,instance,let,
+% 		module,of,primitive,then,type,where,family,newtype},
+%   keywordstyle=[1]\color{textblue},
+%   %classoffset=1,
+%   morekeywords=[2]{->,|,=>,::,[,],\,*,<-},
+%   otherkeywords={->,|,=>,::,[,],\,*,<-},
+%   keywordstyle=[2]\color{textblue},
+%   %deletekeywords={return,Maybe,Just,Nothing,Show,}
+% }
+
+\lstdefinelanguage[Modern]{Haskell}[]{Haskell}{%
+  alsoletter={'},
+  %classoffset=0,
+  keywords=[1]{case,class,data,deriving,do,else,if,import,in,infixl,infixr,instance,let,
+		module,of,primitive,then,type,where,family,newtype},
+  keywordstyle=[1]\color{textblue},
+  %classoffset=1,
+  morekeywords=[2]{->,|,=>,::,[,],\,*,<-},
+  otherkeywords={->,|,=>,::,[,],\,*,<-},
+  keywordstyle=[2]\color{textblue},
+}
+
+\lstdefinelanguage{Scala}{%
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,macro,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstdefinestyle{cpp}{%
+  otherkeywords={\#define,\#ifdef,\#ifndef,\#else,\#endif,\#pragma,\#warning,\#undef,\#include}
+}
+
+%-------------------------------------------------------------------------------
+% COMMANDS
+%
+
+%\providecommand{\inlinecode}[2]
+
+% \providecommand{\widelisting}[1]{%
+%   \makebox[\textwidth][c]{\protect\lstlisting{#1}}
+% }
+%\newcommand{\inlinehaskell}[1]{\lstinline[style=haskell,style=inline]{#1}}
+%\newcommand{\inlinejava}[1]{\lstinline[language=Java,style=inline]{#1}}
+%\newcommand{\inlinescala}[1]{\lstinline[language=Java,style=inline]{#1}}
+
+%\lstMakeShortInline[language=[My]Haskell,style=inline]{\inlinehaskell}
+%\lstMakeShortInline[language=Java,style=inline]{\inlinejava}
+%\lstMakeShortInline[language=Scala,style=inline]{\inlinescala}
+%\lstMakeShortInline[language=SQL,style={sql,inline}]{\inlinesql}
+
+
+%-------------------------------------------------------------------------------
+% BASIC STYLES
+%
+\lstset{%
+  basicstyle=\ttfamily,
+  showstringspaces=false,
+  basewidth=\ml@fullbasewidth,
+  lineskip=-1.5pt,
+  aboveskip=1ex,
+  belowskip=1ex,
+  %escapeinside=»«,
+}
+
+\lstdefinestyle{colored}{%
+  keywordstyle=\color{textblue},
+  identifierstyle=,
+  commentstyle=\color{textgray},
+  stringstyle=\color{textgreen},
+}
+
+\lstdefinestyle{blackwhite}{%
+  keywordstyle=\bfseries,
+  identifierstyle=,
+  commentstyle=\color{textgray},
+  %stringstyle=\color{textred},
+}
+
+\lstdefinestyle{inline}{%
+  basicstyle=\ttfamily\color{black},
+  keywordstyle=\color{black},
+  stringstyle=\color{black},
+  commentstyle=\color{black},
+  basewidth=\ml@smallbasewidth,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=spaceflexible,keepspaces,
+  keywordstyle=\color{black},
+}
+
+\lstdefinestyle{numbered}{%
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=5,
+  firstnumber=1,
+  numberfirstline=true,
+  %numberblanklines=false,
+  numbersep=5pt
+}
+
+\lstdefinestyle{numbered-short}{%
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=5,
+  firstnumber=1,
+  numbersep=5pt
+}
+
+\lstdefinestyle{bold}{%
+  moredelim=[is][\textbf]{***}{***}
+}
+
+\lstdefinestyle{underline}{%
+  moredelim=[is][\@boldunderline]{___}{___}
+}
+
+
+\lstdefinestyle{break-lines}{%
+  breaklines=true,
+  breakatwhitespace=true,
+  breakindent=4\ml@fullbasewidth,
+  %prebreak=\mbox{\ml@lefthook},
+  postbreak=\makebox[0pt]{\kern-1.5\ml@hookwidth\ml@righthook}
+}
+
+\lstdefinestyle{floating}{%
+  float,
+  frame=lines,
+  basicstyle=\ttfamily\small,
+  captionpos=b,
+  style=numbered,
+  xleftmargin=0.5ex,
+  framexleftmargin=0.5ex,
+  numbersep=0pt,
+  belowskip=0pt
+}
+
+\lstdefinestyle{fullpage}{%
+  basicstyle=\ttfamily,
+  style=break-lines,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=5,
+  firstnumber=1,
+  numberfirstline=true,
+  %numberblanklines=false,
+  numbersep=5pt,
+  belowskip=2\baselineskip
+}
+
+%-------------------------------------------------------------------------------
+% SPECIAL ENVIRONMENTS
+%
+%\newcounter{inlinelisting}[section]
+%\newcommand{\inlinelistingautorefname}{example}
+
+
+\newenvironment{numlisting}[1][]
+  {\refstepcounter{lstlisting}\lstset{style=numbered-short}\newline%
+    \begin{minipage}[c][][c]{\textwidth}\begin{minipage}[c][][c]{0.9\textwidth}}
+  {\end{minipage}\hfill (\arabic{chapter}.\arabic{lstlisting})\end{minipage}\newline}
+
+% \lstnewenvironment{numlisting}
+%   {\refstepcounter{lstlisting}\lstset{style=numbered-short}\newline%
+%     \begin{minipage}[c][][c]{\textwidth}\begin{minipage}[c][][c]{0.9\textwidth}}
+%   {\end{minipage}\hfill (\arabic{chapter}.\arabic{lstlisting})\end{minipage}\newline}
+
+\endinput
+
+%%% Local Variables: 
+%%% TeX-master: "../document"
+%%% End:
