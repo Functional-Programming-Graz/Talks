@@ -165,7 +165,8 @@
 
   \lstinline|flatMap| allows to filter and map at the same time; also, using \lstinline|map| on 
   \lstinline|Optional|s (\lstinline|applicationCostFor| returns an \lstinline|Optional<Int>|) makes
-  this one safe, self-contained expression.
+  this one safe, self-contained expression.\footnote{Although Java 8 streams are sometimes weird,
+    they are designed so that they can directly be parallelized in a map-reduce fashion.}
 \end{frame}
 
 
@@ -606,17 +607,32 @@
   
 \end{frame}
 
+\section{Summary}
 
+\begin{frame}[containsverbatim]
+  \frametitle{Summary} 
 
+  \begin{itemize}
+  \item Think recursively: define what you mean, not how it should be done
+  \item Use functions as values to abstract patterns
+  \item Structure and transform data with ADTs
+  \item Use types to define safe, \enquote{obvious} implementations
+  \end{itemize}
+\end{frame}
 
+\begin{frame}[containsverbatim]
+  \frametitle{Summary} 
 
-% \begin{frame}[containsverbatim]
-%   \frametitle{} 
+  Now, you only need to learn
 
-%   \begin{lstlisting}{language=C++}
-    
-%   \end{lstlisting}
-
-% \end{frame}
+  \begin{itemize}
+  \item Scala
+  \item Haskell, ML
+  \item F\#, OCaml
+  \item Lisp
+  \item or the unknown corners of the langages you are already using! (Java, JavaScript, Python,
+    C\#, C++, \ldots)
+  \end{itemize}
+\end{frame}
 
 \end{document}
