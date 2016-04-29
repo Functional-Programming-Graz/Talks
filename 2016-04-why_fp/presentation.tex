@@ -131,7 +131,7 @@
   \frametitle{Remember pipe \& filter?} 
 
   The usual example of stream processing: passing functions into \lstinline|map|,
-  \lstinline|filter|, friends:\footnote{(Code by
+  \lstinline|filter|, and friends:\footnote{(Code by
     \href{http://www.oracle.com/technetwork/articles/java/ma14-java-se-8-streams-2177646.html}{%
       Raoul-Gabriel Urma)}}
 
@@ -327,7 +327,7 @@
   otherwise returns the right side:
 
     \begin{lstlisting}{language=[Modern]Haskell}
-    (<|>) :: Optional a -> Optional a -> Optional a
+    (<|>) :: Option a -> Option a -> Option a
     (Just x) <|> something = Just x
     Nothing <|> something = something
   \end{lstlisting}
@@ -379,40 +379,244 @@
   put upon them after the fact.
 \end{frame}
 
-% \begin{frame}[containsverbatim]
-%   \frametitle{} 
+\begin{frame}[containsverbatim]
+  \frametitle{Usage of type systems}
 
-%   \begin{lstlisting}{language=C++}
-%      /** Converts a function into a universally quantified property */
-%      def forAll[A1,P](f: A1 => P)(implicit
-%        p: P => Prop,
-%        a1: Arbitrary[A1], 
-%        s1: Shrink[A1], 
-%        pp1: A1 => Pretty
-%   ): Prop = forAllShrink(arbitrary[A1],shrink[A1])(f andThen p)
-%   \end{lstlisting}
+  For one, they enable very abstract reuse (by sometimes \enquote{extreme} polymorphism):\footnote{%
+    (From the
+    \href{http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html\#v:sequence_}{%
+      Haskell prelude})}
+ 
+  \begin{lstlisting}{language=[Modern]Haskell}
+    -- | `until p f` yields the result of applying f
+    -- until p holds.
+    until :: (a -> Bool) -> (a -> a) -> a -> a
+    until p f x = if (p x) then x
+                  else until p f (f x)
 
-% \end{frame}
-
-
-
-
-
-
-
-
+    -- | The sum of a collection of actions, 
+    -- generalizing 'concat'.
+    asum :: (Foldable t, Alternative f) => t (f a) -> f a
+    asum = foldr (<|>) empty
+  \end{lstlisting}
 
 
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Usage of type systems} 
+
+  On the other hand, there are interesting ways to achieve compile-time safety:
+
+  \begin{lstlisting}{language=Scala}
+    sealed trait Empty
+    sealed trait NonEmpty
+
+    sealed trait SafeList[Tag, +A]
+    case object SafeNil extends SafeList[Empty, Nothing]
+    case class SafeCons[+A](head: A, tail: SafeList[_, A]) 
+      extends SafeList[NonEmpty, A]
+
+    def safeHead[A](xs: SafeList[NonEmpty, A]): A = xs match {
+      case SafeCons(a, something) => a
+    }
+  \end{lstlisting}
+
+  Testing:
+
+  \begin{lstlisting}
+    scala> safeHead(SafeCons(42, SafeNil))
+    res2: Int = 42
+    scala> safeHead(SafeNil)
+    <console>:18: error: type mismatch;
+      found   : SafeNil.type
+      required: SafeList[NonEmpty,?]
+  \end{lstlisting}
+  
+  % \begin{lstlisting}{language=[Modern]Haskell}
+  %   data Empty
+  %   data NonEmpty
+  %   data TaggedList t a where
+  %   Nil :: TaggedList Empty a
+  %   Cons :: a -> TaggedList t a -> TaggedList NonEmpty a
+
+  %   safeHead :: TaggedList NonEmpty a -> a
+  %   -- as opposed to safeHead :: [a] -> Maybe a
+  % \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Let the compiler do the work for you} 
+
+  Often, when we know what type a function must have, we immediately know how it is implemented:
+
+  % \begin{lstlisting}{language=Scala}
+  %   def mapTree[A, B](f: A => B)(t: Tree[A]): Tree[B] = t match {
+  %     case Leave(a) => f(a)
+  %     case Branch(l, r) => Branch(mapTree(f)(l), mapTree(f)(r))
+  %   }
+  % \end{lstlisting}
+
+  \begin{lstlisting}{language=[Modern]Haskell}
+    mapTree :: (a -> b) -> Tree a -> Tree b
+    mapTree f (Leave a) = Leave (f a)
+    mapTree f (Branch l r) = Branch (mapTree f l) (mapTree f r)
+  \end{lstlisting}
+
+  For the given type signature, and the definition of \texttt{Tree}, there exists only one possible
+  implementation of this function, which can even be derived automatically.\footnote{(see 
+    \href{http://doai.io/10.1145/99370.99404}{Wadler, 1989})}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Type-driven development} 
+
+  Let's say we want to develop a parser. Now, what \textit{is} a parser, actually? We can treat is
+  as a function taking a string and returning something that is parsed, together with the (yet
+  unparsed) rest of the input. And since parsing can fail, we should wrap the result, say, in
+  \texttt{Option}: 
+  
+  \begin{lstlisting}{Scala}
+    case class Parser[A](run: String => Option[(A, String)])
+  \end{lstlisting}
+
+  
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Type-driven development} 
+
+  The simplest thing we need: parsing a single character. The function doing this should be obvious:
+  
+  \begin{lstlisting}{Scala}
+    def char(c: Char): Parser[Char] = Parser {
+      case "" => None
+      case input => if (input.head == c) Some(c, input.tail)
+                    else None
+    }
+  \end{lstlisting}
+
+  \begin{lstlisting}
+    scala> char('x').run("xyz")
+    res11: Option[(Char, String)] = Some((x,yz))
+    scala> char('x').run("yzx")
+    res12: Option[(Char, String)] = None
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Type-driven development} 
+
+  The next important thing is sequencing, alternation, and repetition. We can derive these almost
+  automatically from the types they need to have. 
+
+  Alternation:
+
+  \begin{lstlisting}{language=Scala}
+    def or[A](p1: Parser[A], p2: Parser[A]): Parser[A] = Parser {
+      input => p1.run(input) match {
+        case None => p2.run(input)
+        case something => something
+      }
+    }
+  \end{lstlisting}
+
+  \begin{lstlisting}
+    scala> or(char('a'), char('b')).run("bcd")
+    res14: Option[(Char, String)] = Some((b,cd))
+  \end{lstlisting}
+  
+\end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Type-driven development} 
+
+  Sequencing:
+
+  \begin{lstlisting}{language=Scala}
+    def chain[A, B](p1: Parser[A],
+                    p2: Parser[B]): Parser[(A, B)] = Parser {
+      input => p1.run(input) match {
+        case None => None
+        case Some((a, rest)) => p2.run(rest) match {
+          case None => None
+          case Some((b, rest2)) => Some((a, b), rest2)
+        }
+      }
+    }
+  \end{lstlisting}
+
+  \begin{lstlisting}
+    scala> chain(char('a'), char('b')).run("abc")
+    res19: Option[((Char, Char), String)] = Some(((a,b),c))
+  \end{lstlisting}
+  
+\end{frame}
 
 
 
 \begin{frame}[containsverbatim]
-  \frametitle{} 
+  \frametitle{Type-driven development} 
 
-  \begin{lstlisting}{language=C++}
-    
+  Repetition:
+
+  \begin{lstlisting}{language=Scala}
+    def many[A](p: Parser[A]): Parser[List[A]] = Parser {
+      input => p.run(input) match {
+        case None => Some(List(), input)
+        case Some((a, rest)) => many(p).run(rest) match {
+          case None => Some(List(a), rest)
+          case Some((tail, rest)) => Some(a::tail, rest)
+        }               
+      }
+    }
   \end{lstlisting}
 
+  \begin{lstlisting}
+    scala> many(or(char('a'), char('b'))).run("abbbabcaab")
+    res18: Option[(List[Char], String)] 
+      = Some((List(a, b, b, b, a, b),caab))
+  \end{lstlisting}
+  
 \end{frame}
+
+\begin{frame}[containsverbatim]
+  \frametitle{Type-driven development} 
+
+  Now we have regular expressions:
+
+  \begin{lstlisting}
+    scala> val p = chain(chain(char('a'), 
+         |                     many(or(char('b'), char('c')))),
+         |               char('d'))
+
+    scala> p.run("ad")
+    res25: Option[(((Char, List[Char]), Char), String)] 
+      = Some((((a,List()),d),))
+
+    scala> p.run("abcd")
+    res26: Option[(((Char, List[Char]), Char), String)] 
+      = Some((((a,List(b, c)),d),))
+
+    scala> p.run("abbcbbcccbcdefg")
+    res27: Option[(((Char, List[Char]), Char), String)] 
+      = Some((((a,List(b, b, c, b, b, c, c, c, b, c)),d),efg))
+  \end{lstlisting}
+  
+\end{frame}
+
+
+
+
+
+% \begin{frame}[containsverbatim]
+%   \frametitle{} 
+
+%   \begin{lstlisting}{language=C++}
+    
+%   \end{lstlisting}
+
+% \end{frame}
 
 \end{document}
